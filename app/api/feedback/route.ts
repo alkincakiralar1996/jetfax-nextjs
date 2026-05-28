@@ -6,6 +6,8 @@ export const dynamic = "force-dynamic";
 
 const feedbackSchema = z.object({
   user_id: z.string().uuid().optional(),
+  kind: z.enum(["feedback", "support"]).optional(),
+  subject: z.string().max(200).optional(),
   message: z.string().min(1).max(5000),
   email: z.string().email().optional(),
 });
@@ -22,6 +24,8 @@ export async function POST(request: Request) {
       .insert(schema.feedback)
       .values({
         userId: b.user_id ?? null,
+        kind: b.kind ?? "feedback",
+        subject: b.subject ?? null,
         message: b.message,
         email: b.email ?? null,
       })

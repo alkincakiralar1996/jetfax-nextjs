@@ -10,7 +10,6 @@ const DEFAULTS = {
   privacyUrl: "https://jetfax-nextjs.vercel.app/privacy",
   termsUrl: "https://jetfax-nextjs.vercel.app/terms",
   supportUrl: "https://jetfax-nextjs.vercel.app/support",
-  maintenanceMode: false,
 };
 
 // GET /api/settings — singleton app config. Self-seeds row id=1 on first read.

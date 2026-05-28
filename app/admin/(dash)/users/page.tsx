@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { desc } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 
@@ -73,8 +74,13 @@ export default async function AdminUsers() {
                   key={u.id}
                   className="border-b border-[#0F3D2E]/5 last:border-0"
                 >
-                  <td className="px-4 py-3 font-mono text-xs text-[#3F3F46]">
-                    {u.deviceId.slice(0, 8)}…
+                  <td className="px-4 py-3 font-mono text-xs">
+                    <Link
+                      href={`/admin/users/${u.id}`}
+                      className="text-[#1B5E47] underline-offset-2 hover:underline"
+                    >
+                      {u.deviceId.slice(0, 8)}…
+                    </Link>
                   </td>
                   <td className="px-4 py-3">{u.platform ?? "—"}</td>
                   <td className="px-4 py-3">{u.region ?? "—"}</td>

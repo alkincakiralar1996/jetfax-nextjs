@@ -39,7 +39,6 @@ async function saveSettings(formData: FormData) {
     privacyUrl: (formData.get("privacyUrl") as string) || null,
     termsUrl: (formData.get("termsUrl") as string) || null,
     supportUrl: (formData.get("supportUrl") as string) || null,
-    maintenanceMode: formData.get("maintenanceMode") === "on",
     updatedAt: new Date(),
   };
   await db
@@ -92,18 +91,6 @@ export default async function AdminSettings() {
           name="supportUrl"
           defaultValue={s.supportUrl ?? ""}
         />
-
-        <label className="flex items-center gap-3 rounded-xl border border-[#0F3D2E]/10 bg-white px-4 py-3">
-          <input
-            type="checkbox"
-            name="maintenanceMode"
-            defaultChecked={s.maintenanceMode}
-            className="h-4 w-4 accent-[#0F3D2E]"
-          />
-          <span className="text-sm font-medium text-[#3F3F46]">
-            Maintenance mode
-          </span>
-        </label>
 
         <div className="flex items-center gap-4">
           <button
