@@ -8,6 +8,12 @@ import { ADMIN_COOKIE, verifySessionToken } from "@/lib/admin-auth";
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Only gate admin surfaces. proxyConfig.matcher should scope this, but
+  // guard defensively — some Next 16 builds invoke proxy on every route.
+  const isAdminPath =
+    pathname.startsWith("/admin") || pathname.startsWith("/api/admin");
+  if (!isAdminPath) return NextResponse.next();
+
   const isLoginPage = pathname === "/admin/login";
   const isLoginApi = pathname === "/api/admin/login";
   if (isLoginPage || isLoginApi) return NextResponse.next();
