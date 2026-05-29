@@ -60,19 +60,51 @@ export const feedback = pgTable("feedback", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-// STUB — schema + admin view only. No write logic until RevenueCat webhook lands.
+// Current subscription state — one row per subscription, upserted by
+// original_transaction_id on each RevenueCat webhook event.
 export const purchases = pgTable("purchases", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+  appUserId: text("app_user_id"), // RevenueCat app_user_id (= our users.id)
   productId: text("product_id"),
-  plan: text("plan"), // weekly|monthly|single
-  status: text("status"), // active|expired|trial|refunded
+  plan: text("plan"), // weekly|monthly
+  entitlement: text("entitlement"), // 'pro'
+  status: text("status"), // active|cancelled|expired|billing_issue
+  isActive: boolean("is_active").default(false).notNull(),
+  store: text("store"), // APP_STORE
+  environment: text("environment"), // SANDBOX|PRODUCTION
+  eventType: text("event_type"), // last event applied
   price: numeric("price"),
   currency: text("currency"),
   usdPrice: numeric("usd_price"),
-  transactionId: text("transaction_id").unique(),
   countryCode: text("country_code"),
+  originalTransactionId: text("original_transaction_id").unique(),
+  transactionId: text("transaction_id"),
   purchasedAt: timestamp("purchased_at", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  unsubscribeDetectedAt: timestamp("unsubscribe_detected_at", {
+    withTimezone: true,
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Append-only RevenueCat event log. Idempotency key = event_id. Drives
+// daily-sales analytics (count INITIAL_PURCHASE) + full audit trail.
+export const purchaseEvents = pgTable("purchase_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  eventId: text("event_id").notNull().unique(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+  appUserId: text("app_user_id"),
+  originalTransactionId: text("original_transaction_id"),
+  type: text("type").notNull(), // INITIAL_PURCHASE|RENEWAL|CANCELLATION|EXPIRATION|...
+  productId: text("product_id"),
+  store: text("store"),
+  environment: text("environment"),
+  priceUsd: numeric("price_usd"),
+  countryCode: text("country_code"),
+  raw: jsonb("raw"),
+  eventAt: timestamp("event_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -114,6 +146,9 @@ export type Event = typeof events.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
 export type Feedback = typeof feedback.$inferSelect;
 export type Purchase = typeof purchases.$inferSelect;
+export type NewPurchase = typeof purchases.$inferInsert;
+export type PurchaseEvent = typeof purchaseEvents.$inferSelect;
+export type NewPurchaseEvent = typeof purchaseEvents.$inferInsert;
 export type Fax = typeof faxes.$inferSelect;
 export type NewFax = typeof faxes.$inferInsert;
 export type Faq = typeof faq.$inferSelect;

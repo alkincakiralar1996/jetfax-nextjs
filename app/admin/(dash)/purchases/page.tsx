@@ -13,6 +13,28 @@ function fmt(d: Date | null | undefined): string {
   });
 }
 
+function StatusBadge({
+  status,
+  isActive,
+}: {
+  status: string | null;
+  isActive: boolean;
+}) {
+  const label = status ?? (isActive ? "active" : "—");
+  const cls = isActive
+    ? "bg-[#E8F5EF] text-[#1B5E47]"
+    : status === "cancelled"
+      ? "bg-[#FFF4DD] text-[#92400E]"
+      : "bg-[#F3F4F6] text-[#6B7280]";
+  return (
+    <span
+      className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${cls}`}
+    >
+      {label}
+    </span>
+  );
+}
+
 export default async function AdminPurchases() {
   let rows: (typeof schema.purchases.$inferSelect)[] = [];
   let dbError = false;
@@ -27,17 +49,19 @@ export default async function AdminPurchases() {
     dbError = true;
   }
 
+  const active = rows.filter((r) => r.isActive).length;
+
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Purchases</h1>
-        <span className="text-sm text-[#6B7280]">{rows.length} shown</span>
+        <h1 className="text-2xl font-bold tracking-tight">Subscriptions</h1>
+        <span className="text-sm text-[#6B7280]">
+          {active} active · {rows.length} shown
+        </span>
       </div>
-
-      <p className="mt-4 rounded-lg border border-[#FFB020]/30 bg-[#FFF4DD] px-4 py-3 text-sm text-[#92400E]">
-        <strong className="font-semibold">Read-only stub.</strong> Write logic
-        lands with the RevenueCat webhook in a later phase. Schema + this view
-        exist now so the table is ready to populate.
+      <p className="mt-1 text-sm text-[#6B7280]">
+        Live subscription state, kept in sync by the RevenueCat webhook
+        (/api/webhooks/revenuecat). One row per subscription.
       </p>
 
       {dbError ? (
@@ -50,24 +74,23 @@ export default async function AdminPurchases() {
             <thead className="border-b border-[#0F3D2E]/10 bg-[#FAFAF7] text-xs uppercase tracking-wider text-[#6B7280]">
               <tr>
                 <th className="px-4 py-3">User</th>
-                <th className="px-4 py-3">Product</th>
                 <th className="px-4 py-3">Plan</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Price</th>
-                <th className="px-4 py-3">USD</th>
                 <th className="px-4 py-3">Country</th>
-                <th className="px-4 py-3">Txn</th>
+                <th className="px-4 py-3">Env</th>
                 <th className="px-4 py-3">Purchased</th>
+                <th className="px-4 py-3">Expires</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={8}
                     className="px-4 py-8 text-center text-[#6B7280]"
                   >
-                    No purchases yet — wiring lands with RevenueCat.
+                    No subscriptions yet.
                   </td>
                 </tr>
               ) : (
@@ -79,19 +102,28 @@ export default async function AdminPurchases() {
                     <td className="px-4 py-3 font-mono text-xs text-[#3F3F46]">
                       {p.userId ? `${p.userId.slice(0, 8)}…` : "—"}
                     </td>
-                    <td className="px-4 py-3 text-xs">{p.productId ?? "—"}</td>
-                    <td className="px-4 py-3">{p.plan ?? "—"}</td>
-                    <td className="px-4 py-3">{p.status ?? "—"}</td>
+                    <td className="px-4 py-3 capitalize">{p.plan ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={p.status} isActive={p.isActive} />
+                    </td>
                     <td className="px-4 py-3">
                       {p.price ? `${p.price} ${p.currency ?? ""}`.trim() : "—"}
                     </td>
-                    <td className="px-4 py-3">{p.usdPrice ?? "—"}</td>
                     <td className="px-4 py-3">{p.countryCode ?? "—"}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-[#3F3F46]">
-                      {p.transactionId ?? "—"}
+                    <td className="px-4 py-3 text-xs text-[#6B7280]">
+                      {p.environment === "SANDBOX" ? (
+                        <span className="rounded bg-[#FFF4DD] px-1.5 py-0.5 font-semibold text-[#92400E]">
+                          SANDBOX
+                        </span>
+                      ) : (
+                        (p.environment ?? "—")
+                      )}
                     </td>
                     <td className="px-4 py-3 text-xs text-[#6B7280]">
                       {fmt(p.purchasedAt)}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-[#6B7280]">
+                      {fmt(p.expiresAt)}
                     </td>
                   </tr>
                 ))
